@@ -1,10 +1,11 @@
 package com.epam.training.ticketservice.ui.command;
 
-import com.epam.training.ticketservice.core.user.UserService;
-import com.epam.training.ticketservice.core.user.model.UserDto;
-//import com.epam.training.ticketservice.core.user.persistence.entity.User;
+import com.epam.training.ticketservice.core.user.persistence.entity.User;
+import com.epam.training.ticketservice.core.user.service.UserService;
+import org.springframework.shell.Availability;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellMethodAvailability;
 
 import java.util.Optional;
 
@@ -17,40 +18,37 @@ public class UserCommand {
         this.userService = userService;
     }
 
-    @ShellMethod(key = "user login", value = "User login")
-    public String signInPriviliged(String username, String password) {
-        Optional<UserDto> user = userService.signInPriviliged(username, password);
-        if (user.isEmpty()) { //|| user.get().getRole() == User.Role.ADMIN
-            return "Login failed due to incorrect credentials";
+    @ShellMethod(value = "Sign in with credentials to admin account", key = {"sign in privileged", "sip"})
+    public String signInPrivileged(final String username, final String password) {
+        final Optional<User> account = this.userService.getAccountById(username);
+        if (account.filter(User::getAdmin).isPresent() && password.equals(account.get().getPassword())) {
+            this.userService.signIn(account.get());
+            return "Successfully signed in";
+        } else if (account.filter(acc -> !acc.getAdmin()).isPresent()) {
+            return String.format("'%s' is not a privileged user", username);
         }
-        return user.get() + " is logged in!";
+        return "Login failed due to incorrect credentials";
     }
 
-    @ShellMethod(key = "user logout", value = "User logout")
+    @ShellMethod(value = "Sign out from account", key = {"sign out", "so"})
+    @ShellMethodAvailability(value = "checkLoggedInAvailability")
     public String signOut() {
-        Optional<UserDto> user = userService.signOut();
-        if (user.isEmpty()) {
-            return "You are not signed in";
-        }
-        return user.get() + " is logged out!";
+        this.userService.signOut();
+        return "Successfully signed out";
     }
 
-    @ShellMethod(key = "user print", value = "Get user information")
+    @ShellMethod(value = "Query signed in account info", key = {"describe account", "da"})
     public String describeAccount() {
-        Optional<UserDto> userDto = userService.describeAccount();
-        if (userDto.isEmpty()) {
-            return "You are not signed in";
+        final Optional<User> loggedInAccount = this.userService.getLoggedInUser();
+        if (loggedInAccount.isPresent()) {
+            return this.userService.formattedAccountDescription(loggedInAccount.get());
         }
-        return "Signed in with privileged account " + userDto.get().getUsername();
+        return "You are not signed in";
     }
 
-    @ShellMethod(key = "user register", value = "User registration")
-    public String registerUser(String userName, String password) {
-        try {
-            userService.registerUser(userName, password);
-            return "Registration was successful!";
-        } catch (Exception e) {
-            return "Registration failed!";
-        }
+    public Availability checkLoggedInAvailability() {
+        return this.userService.getLoggedInUser().isPresent()
+                ? Availability.available()
+                : Availability.unavailable("you are not signed in.");
     }
 }
