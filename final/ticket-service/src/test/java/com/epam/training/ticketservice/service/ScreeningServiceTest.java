@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 class ScreeningServiceTest {
 
+    private final static int breakLength = 10;
     private final static String dateTimePattern = "yyyy-MM-dd HH:mm";
 
     private final static Room room1 = new Room("Room1", 10, 10);
@@ -59,7 +60,7 @@ class ScreeningServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        underTest = new ScreeningService(screeningRepository, movieService, roomService, dateTimePattern);
+        underTest = new ScreeningService(screeningRepository, movieService, roomService, breakLength, dateTimePattern);
     }
 
     @Test

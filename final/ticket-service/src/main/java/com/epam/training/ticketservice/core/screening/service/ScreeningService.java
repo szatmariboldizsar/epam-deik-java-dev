@@ -16,10 +16,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ScreeningService {
 
+    private final int breakLength;
     private final String dateTimePattern;
 
     private final ScreeningRepository screeningRepository;
@@ -29,15 +31,31 @@ public class ScreeningService {
     public ScreeningService(final ScreeningRepository screeningRepository,
                             final MovieService movieService,
                             final RoomService roomService,
+                            final @Value("${ticket-service.screening.break-length}") int breakLength,
                             final @Value("${ticket-service.date-time.pattern}") String dateTimePattern) {
         this.screeningRepository = screeningRepository;
         this.movieService = movieService;
         this.roomService = roomService;
+        this.breakLength = breakLength;
         this.dateTimePattern = dateTimePattern;
     }
 
     public List<Screening> getAllScreenings() {
         return this.screeningRepository.findAll();
+    }
+
+    public Optional<Screening> getScreeningById(final String movieName,
+                                                final String roomName,
+                                                final LocalDateTime startingAt) {
+        return this.screeningRepository.findById(constructScreeningIdFromIds(movieName, roomName, startingAt));
+    }
+
+    public Optional<Screening> getScreeningById(final String movieName,
+                                                final String roomName,
+                                                final String startingAt) {
+        final LocalDateTime parsedStartingAt = this.parseDateString(startingAt);
+
+        return getScreeningById(movieName, roomName, parsedStartingAt);
     }
 
     public void createScreeningFromIds(final String movieName, final String roomName, final String startingAt)
@@ -120,6 +138,20 @@ public class ScreeningService {
                     ||
                     (endingAt.isAfter(screening.getId().getStartingAt())
                     && endingAt.isBefore(currentScreeningEndingAt));
+        });
+    }
+
+    public boolean isOverlappingBreak(final String roomName, final LocalDateTime startingAt) {
+        final List<Screening> screenings = screeningRepository.findScreeningsById_Room_Name(roomName);
+
+        return screenings.stream().anyMatch(screening -> {
+            final int currentMovieLength = this.movieService.getMovieById(
+                    screening.getId().getMovie().getName()).get().getLength();
+            final LocalDateTime currentScreeningEndingAt =
+                    screening.getId().getStartingAt().plusMinutes(currentMovieLength);
+
+            return startingAt.isAfter(currentScreeningEndingAt)
+                    && startingAt.isBefore(currentScreeningEndingAt.plusMinutes(breakLength));
         });
     }
 }

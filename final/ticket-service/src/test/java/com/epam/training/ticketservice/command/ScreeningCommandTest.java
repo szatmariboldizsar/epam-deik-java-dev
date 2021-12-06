@@ -30,7 +30,7 @@ class ScreeningCommandTest {
     private final static User USER = new User("user", "user");
     private final static String movieName = "Movie";
     private final static String roomName = "Room";
-    private final static String startingAt = "2000-12-13 10:10";
+    private final static String startingAt = "2000-20-13 12:30";
 
     private ScreeningCommand underTest;
 
@@ -63,7 +63,7 @@ class ScreeningCommandTest {
     @Test
     void testCreateScreeningShouldCallServiceAndReturnSuccessMessage() {
         // Given
-        final String expected = "Screening to 'Movie' in Room at 2000-12-13 10:10 successfully created.";
+        final String expected = "Screening to 'Movie' in Room at 2000-20-13 12:30 successfully created.";
         doNothing().when(screeningService).createScreeningFromIds(movieName, roomName, startingAt);
 
         // When
@@ -92,7 +92,7 @@ class ScreeningCommandTest {
     @Test
     void testDeleteScreeningShouldCallServiceReturnSuccessMessage() {
         // Given
-        final String expected = "Screening to 'Movie' in Room at 2000-12-13 10:10 successfully deleted.";
+        final String expected = "Screening to 'Movie' in Room at 2000-20-13 12:30 successfully deleted.";
         given(screeningService.constructScreeningIdFromIds(movieName, roomName, startingAt)).willReturn(new ScreeningId());
         doNothing().when(screeningService).deleteScreening(any(ScreeningId.class));
 
