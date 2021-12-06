@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ticket-service
+    username: sa
+    password: admin
+
+ticket-service:
+  screening:
+    break-length: 10
+  price:
+    base: 1500
+  date-time:
+    pattern: yyyy-MM-dd HH:mm
