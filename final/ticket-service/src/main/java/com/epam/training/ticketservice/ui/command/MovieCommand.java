@@ -1,70 +1,70 @@
 package com.epam.training.ticketservice.ui.command;
 
-import com.epam.training.ticketservice.core.movie.MovieService;
-import com.epam.training.ticketservice.core.movie.model.MovieDto;
-import com.epam.training.ticketservice.core.user.UserService;
-import com.epam.training.ticketservice.core.user.model.UserDto;
+import com.epam.training.ticketservice.core.movie.service.MovieService;
+import com.epam.training.ticketservice.core.movie.persistence.entity.Movie;
+import com.epam.training.ticketservice.core.user.service.UserService;
 import com.epam.training.ticketservice.core.user.persistence.entity.User;
+import com.epam.training.ticketservice.ui.exception.NoSuchItemException;
 import org.springframework.shell.Availability;
+import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellMethodAvailability;
 
 import java.util.List;
-import java.util.Optional;
 
+@ShellComponent
 public class MovieCommand {
+
     private final MovieService movieService;
     private final UserService userService;
 
-    public MovieCommand(MovieService movieService, UserService userService) {
-        this.movieService = movieService;
+    public MovieCommand(final MovieService movieService, final UserService userService) {
         this.userService = userService;
+        this.movieService = movieService;
     }
 
-    @ShellMethodAvailability("isAvailable")
-    @ShellMethod(key = "admin create movie", value = "Create new movie")
-    public MovieDto createMovie(String title, String genre, int length) {
-        MovieDto movie = MovieDto.builder()
-                .withTitle(title)
-                .withGenre(genre)
-                .withLength(length).build();
-        movieService.createMovie(movie);
-        return movie;
+    @ShellMethod(value = "Add a movie to database", key = {"create movie", "cm"})
+    @ShellMethodAvailability(value = "checkAdminAvailability")
+    public String createMovie(final String name, final String genre, final int length) {
+        this.movieService.createMovie(new Movie(name, genre, length));
+        return String.format("Movie with name '%s' successfully created.", name);
     }
 
-    @ShellMethodAvailability("isAvailable")
-    @ShellMethod(key = "admin update movie", value = "Update existing movie")
-    public MovieDto updateMovie(String title, String genre, int length) {
-        MovieDto movie = MovieDto.builder()
-                .withTitle(title)
-                .withGenre(genre)
-                .withLength(length).build();
-        movieService.updateMovie(movie);
-        return movie;
+    @ShellMethod(value = "Update a movie in the database", key = {"update movie", "um"})
+    @ShellMethodAvailability(value = "checkAdminAvailability")
+    public String updateMovie(final String name, final String genre, final int length) {
+        try {
+            this.movieService.updateMovie(new Movie(name, genre, length));
+            return String.format("Movie with name '%s' successfully updated.", name);
+        } catch (NoSuchItemException e) {
+            return e.getMessage();
+        }
     }
 
-    @ShellMethodAvailability("isAvailable")
-    @ShellMethod(key = "admin delete movie", value = "Delete existing movie")
-    public void deleteMovie(String title) {
-        MovieDto movie = MovieDto.builder()
-                .withTitle(title).build();
-        movieService.deleteMovie(movie);
+    @ShellMethod(value = "Delete a movie from the database", key = {"delete movie", "dm"})
+    @ShellMethodAvailability(value = "checkAdminAvailability")
+    public String deleteMovie(final String name) {
+        try {
+            this.movieService.deleteMovie(name);
+            return String.format("Movie with name '%s' successfully deleted.", name);
+        } catch (NoSuchItemException e) {
+            return e.getMessage();
+        }
     }
 
-    @ShellMethod(key = "list movies", value = "List movies")
+    @ShellMethod(value = "List the movies", key = {"list movies", "lm"})
     public String listMovies() {
-        List<MovieDto> movieDtoList = movieService.listMovies();
-        if (!movieDtoList.isEmpty()) {
-            return movieDtoList.toString();
+        final List<Movie> movies = this.movieService.getAllMovies();
+
+        if (!movies.isEmpty()) {
+            return movieService.formattedMovieList(movies);
         }
         return "There are no movies at the moment";
     }
 
-    private Availability isAvailable() {
-        Optional<UserDto> user = userService.describeAccount();
-        if (user.isPresent() && user.get().getRole() == User.Role.ADMIN) {
-            return Availability.available();
-        }
-        return Availability.unavailable("You are not an admin!");
+    public Availability checkAdminAvailability() {
+        return this.userService.getLoggedInUser().filter(User::getAdmin).isPresent()
+                ? Availability.available()
+                : Availability.unavailable("this command requires admin privileges.");
     }
 }
