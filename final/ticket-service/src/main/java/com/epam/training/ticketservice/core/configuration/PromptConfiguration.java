@@ -4,9 +4,6 @@ import org.jline.utils.AttributedString;
 import org.springframework.shell.jline.PromptProvider;
 import org.springframework.stereotype.Component;
 
-import static org.jline.utils.AttributedStyle.CYAN;
-import static org.jline.utils.AttributedStyle.DEFAULT;
-
 @Component
 public class PromptConfiguration implements PromptProvider {
 
