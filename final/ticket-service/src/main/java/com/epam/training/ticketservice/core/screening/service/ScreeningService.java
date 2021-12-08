@@ -70,6 +70,9 @@ public class ScreeningService {
         if (isOverlappingScreening(roomName, movie.getLength(), formattedStartingAt)) {
             throw new ScreeningOverlapException("There is an overlapping screening");
         }
+        else if (isOverlappingBreak(roomName, formattedStartingAt)) {
+            throw new ScreeningOverlapException("This would start in the break period after another screening in this room");
+        }
         this.createScreening(new Screening(new ScreeningId(movie, room, formattedStartingAt)));
     }
 
